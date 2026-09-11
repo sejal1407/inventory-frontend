@@ -1,78 +1,84 @@
+/* =========================================================
+   GLOBAL RESET
+   ========================================================= */
+
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+    width: 100%;
 }
 
 body {
-  margin: 0;
-  font-family: Arial, Helvetica, sans-serif;
-  background: #f4f6f8;
-  color: #222;
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+
+    background:
+        linear-gradient(
+            135deg,
+            #edf4f7 0%,
+            #f6f9fb 50%,
+            #eaf3f6 100%
+        );
+
+    color: #19344f;
+
+    min-height: 100vh;
 }
+
+
+/* =========================================================
+   LINKS
+   ========================================================= */
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+
+/* =========================================================
+   BUTTONS / INPUTS
+   ========================================================= */
 
 button,
 input,
 textarea,
 select {
-  font-family: inherit;
+    font-family: inherit;
 }
 
-button {
-  cursor: pointer;
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
 }
 
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
+::-webkit-scrollbar-track {
+    background: #e8eff3;
 }
 
-h1,
-h2,
-h3,
-p {
-  margin-top: 0;
+::-webkit-scrollbar-thumb {
+    background: #9bb2c1;
+    border-radius: 10px;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th,
-td {
-  padding: 12px;
-  border: 1px solid #ddd;
-  text-align: left;
-}
-
-th {
-  background: #f1f3f5;
-}
-
-input,
-textarea,
-select {
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 14px;
-}
-
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: #4f46e5;
-}
-
-button {
-  padding: 10px 16px;
-  border: none;
-  border-radius: 5px;
-  background: #4f46e5;
-  color: white;
-  margin-right: 8px;
-}
-
-button:hover {
-  opacity: 0.9;
+::-webkit-scrollbar-thumb:hover {
+    background: #7894a6;
 }

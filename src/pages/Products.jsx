@@ -1,721 +1,1275 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import Navbar from "../components/Navbar";
 import "./Products.css";
 
+const ADMIN_EMAIL = "test@gmail.com";
+
+const PRODUCTS_PER_PAGE = 10;
+
+const initialFormData = {
+  name: "",
+  sku: "",
+  description: "",
+  price: "",
+  quantity: "",
+  lowStockThreshold: "10",
+  categoryId: "",
+};
+
 function Products() {
-  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  /* ==========================================
+     FORM REF FOR SCROLLING
+     ========================================== */
+
+  const formRef = useRef(null);
+
+  /* ==========================================
+     STATE
+     ========================================== */
+
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
 
-  // Product form
-  const [name, setName] = useState("");
-  const [sku, setSku] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [lowStockThreshold, setLowStockThreshold] = useState(10);
-  const [categoryId, setCategoryId] = useState("");
+  const [formData, setFormData] =
+    useState(initialFormData);
 
-  // Edit
-  const [editingId, setEditingId] = useState(null);
+  const [errors, setErrors] = useState({});
 
-  // Search
-  const [searchName, setSearchName] = useState("");
-  const [searching, setSearching] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadingProducts, setLoadingProducts] =
+    useState(false);
 
-  // Low stock
-  const [lowStockProducts, setLowStockProducts] = useState([]);
-  const [lowStockQuantity, setLowStockQuantity] = useState(10);
-  const [lowStockLoading, setLowStockLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [errorMessage, setErrorMessage] =
+    useState("");
 
-  // Stock update
-  const [stockProductId, setStockProductId] = useState(null);
-  const [stockQuantity, setStockQuantity] = useState("");
-  const [stockUpdating, setStockUpdating] = useState(false);
+  const [editingProductId, setEditingProductId] =
+    useState(null);
 
-  // Loading
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  /* ==========================================
+     PAGINATION
+     ========================================== */
 
-  // Messages
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [currentPage, setCurrentPage] =
+    useState(1);
 
-  // Load data
-  const loadData = async () => {
+  const totalPages = Math.max(
+    1,
+    Math.ceil(
+      products.length / PRODUCTS_PER_PAGE
+    )
+  );
+
+  const startIndex =
+    (currentPage - 1) *
+    PRODUCTS_PER_PAGE;
+
+  const currentProducts = products.slice(
+    startIndex,
+    startIndex + PRODUCTS_PER_PAGE
+  );
+
+  /* Keep page valid after deletion */
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const isAddMode =
+    searchParams.get("mode") === "add";
+
+  /* ==========================================
+     LOAD USER
+     ========================================== */
+
+  useEffect(() => {
+    const storedUser =
+      localStorage.getItem("user");
+
+    if (storedUser) {
+      try {
+        const parsedUser =
+          JSON.parse(storedUser);
+
+        setIsAdmin(
+          parsedUser?.email === ADMIN_EMAIL
+        );
+      } catch (error) {
+        console.error(
+          "Unable to read user:",
+          error
+        );
+      }
+    }
+  }, []);
+
+  /* ==========================================
+     LOAD CATEGORIES
+     ========================================== */
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  /* ==========================================
+     LOAD PRODUCTS
+     ========================================== */
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadProducts();
+    }
+  }, [isAdmin]);
+
+  /* ==========================================
+     LOAD CATEGORIES
+     ========================================== */
+
+  const loadCategories = async () => {
+    try {
+      const response = await api.get(
+        "/categories/available"
+      );
+
+      setCategories(response.data || []);
+    } catch (error) {
+      console.error(
+        "Error loading categories:",
+        error
+      );
+
+      setCategories([]);
+
+      setErrorMessage(
+        error.response?.data?.message ||
+          "Unable to load categories."
+      );
+    }
+  };
+
+  /* ==========================================
+     LOAD PRODUCTS
+     ========================================== */
+
+  const loadProducts = async () => {
+    try {
+      setLoadingProducts(true);
+
+      const response = await api.get(
+        "/products"
+      );
+
+      setProducts(response.data || []);
+
+      setCurrentPage(1);
+    } catch (error) {
+      console.error(
+        "Error loading products:",
+        error
+      );
+
+      setProducts([]);
+
+      setErrorMessage(
+        error.response?.data?.message ||
+          "Unable to load products."
+      );
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  /* ==========================================
+     HANDLE INPUT
+     ========================================== */
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    /* Product Name */
+
+    if (name === "name") {
+      if (!/^[A-Za-z\s]*$/.test(value)) {
+        setErrors((prev) => ({
+          ...prev,
+          name:
+            "Only letters and spaces are allowed.",
+        }));
+
+        return;
+      }
+
+      setErrors((prev) => ({
+        ...prev,
+        name: "",
+      }));
+    }
+
+    /* Price */
+
+    if (name === "price") {
+      if (!/^\d*$/.test(value)) {
+        setErrors((prev) => ({
+          ...prev,
+          price:
+            "Only whole numbers are allowed.",
+        }));
+
+        return;
+      }
+
+      setErrors((prev) => ({
+        ...prev,
+        price: "",
+      }));
+    }
+
+    /* Quantity */
+
+    if (name === "quantity") {
+      if (!/^\d*$/.test(value)) {
+        setErrors((prev) => ({
+          ...prev,
+          quantity:
+            "Only whole numbers are allowed.",
+        }));
+
+        return;
+      }
+
+      setErrors((prev) => ({
+        ...prev,
+        quantity: "",
+      }));
+    }
+
+    /* Low Stock Threshold */
+
+    if (name === "lowStockThreshold") {
+      if (!/^\d*$/.test(value)) {
+        setErrors((prev) => ({
+          ...prev,
+          lowStockThreshold:
+            "Only whole numbers are allowed.",
+        }));
+
+        return;
+      }
+
+      setErrors((prev) => ({
+        ...prev,
+        lowStockThreshold: "",
+      }));
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    setMessage("");
+    setErrorMessage("");
+  };
+
+  /* ==========================================
+     VALIDATE FORM
+     ========================================== */
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    const trimmedName =
+      formData.name.trim();
+
+    if (!trimmedName) {
+      newErrors.name =
+        "Product name is required.";
+    } else if (
+      !/^[A-Za-z\s]+$/.test(trimmedName)
+    ) {
+      newErrors.name =
+        "Only letters and spaces are allowed.";
+    }
+
+    if (!formData.sku.trim()) {
+      newErrors.sku =
+        "SKU is required.";
+    }
+
+    if (formData.price === "") {
+      newErrors.price =
+        "Price is required.";
+    } else if (
+      !/^\d+$/.test(formData.price)
+    ) {
+      newErrors.price =
+        "Only whole numbers are allowed.";
+    }
+
+    if (formData.quantity === "") {
+      newErrors.quantity =
+        "Quantity is required.";
+    } else if (
+      !/^\d+$/.test(formData.quantity)
+    ) {
+      newErrors.quantity =
+        "Only whole numbers are allowed.";
+    }
+
+    if (
+      formData.lowStockThreshold === ""
+    ) {
+      newErrors.lowStockThreshold =
+        "Low stock threshold is required.";
+    } else if (
+      !/^\d+$/.test(
+        formData.lowStockThreshold
+      )
+    ) {
+      newErrors.lowStockThreshold =
+        "Only whole numbers are allowed.";
+    }
+
+    if (!formData.categoryId) {
+      newErrors.categoryId =
+        "Please select a category.";
+    }
+
+    setErrors(newErrors);
+
+    return (
+      Object.keys(newErrors).length === 0
+    );
+  };
+
+  /* ==========================================
+     ADD / UPDATE PRODUCT
+     ========================================== */
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    setMessage("");
+    setErrorMessage("");
+
+    if (!validateForm()) {
+      return;
+    }
+
     try {
       setLoading(true);
-      setError("");
 
-      const [productsResponse, categoriesResponse] = await Promise.all([
-        api.get("/products"),
-        api.get("/categories"),
-      ]);
+      const payload = {
+        name: formData.name.trim(),
+        sku: formData.sku.trim(),
+        description:
+          formData.description.trim(),
+        price: Number(formData.price),
+        quantity: Number(formData.quantity),
+        lowStockThreshold: Number(
+          formData.lowStockThreshold
+        ),
+        categoryId: Number(
+          formData.categoryId
+        ),
+      };
 
-      setProducts(productsResponse.data);
-      setCategories(categoriesResponse.data);
-    } catch (err) {
-      console.error("LOAD DATA ERROR:", err);
+      /* ==================================
+         UPDATE PRODUCT
+         ================================== */
 
-      if (err.response?.data?.error) {
-        setError(err.response.data.error);
-      } else {
-        setError("Failed to load products or categories.");
+      if (editingProductId !== null) {
+        const response = await api.put(
+          `/products/${editingProductId}`,
+          payload
+        );
+
+        setProducts((prevProducts) =>
+          prevProducts.map((product) =>
+            product.id === editingProductId
+              ? response.data
+              : product
+          )
+        );
+
+        setMessage(
+          "Product updated successfully."
+        );
+
+        /* Hide success message after 5 seconds */
+
+        setTimeout(() => {
+          setMessage("");
+        }, 5000);
       }
+
+      /* ==================================
+         ADD PRODUCT
+         ================================== */
+
+      else {
+        const response = await api.post(
+          "/products",
+          payload
+        );
+
+        if (
+          isAdmin &&
+          response.data
+        ) {
+          setProducts((prevProducts) => [
+            response.data,
+            ...prevProducts,
+          ]);
+
+          /* New product appears on page 1 */
+
+          setCurrentPage(1);
+        }
+
+        setMessage(
+          "Product added successfully."
+        );
+      }
+
+      /* Reset form */
+
+      setFormData(initialFormData);
+
+      setErrors({});
+
+      setEditingProductId(null);
+
+    } catch (error) {
+      console.error(
+        "Product save error:",
+        error
+      );
+
+      const backendMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Unable to save product.";
+
+      /* ==================================
+         PRODUCT NOT FOUND
+         ================================== */
+
+      if (
+        editingProductId !== null &&
+        error.response?.status === 404
+      ) {
+        setErrorMessage(
+          "Product not found."
+        );
+
+        setFormData(initialFormData);
+
+        setErrors({});
+
+        setEditingProductId(null);
+
+        setTimeout(() => {
+          setErrorMessage("");
+        }, 5000);
+      } else {
+        setErrorMessage(
+          backendMessage
+        );
+
+        setTimeout(() => {
+          setErrorMessage("");
+        }, 5000);
+      }
+
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  /* ==========================================
+     EDIT PRODUCT
+     ========================================== */
 
-  // Clear form
-  const clearForm = () => {
-    setName("");
-    setSku("");
-    setDescription("");
-    setPrice("");
-    setQuantity("");
-    setLowStockThreshold(10);
-    setCategoryId("");
-    setEditingId(null);
-  };
-
-  // Add / Update
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    setError("");
-    setSuccess("");
-    setSaving(true);
-
-    try {
-      const productData = {
-        name,
-        sku,
-        description,
-        price: Number(price),
-        quantity: Number(quantity),
-        lowStockThreshold: Number(lowStockThreshold),
-        categoryId: Number(categoryId),
-      };
-
-      if (editingId === null) {
-        await api.post("/products", productData);
-        setSuccess("Product added successfully.");
-      } else {
-        await api.put(`/products/${editingId}`, productData);
-        setSuccess("Product updated successfully.");
-      }
-
-      clearForm();
-      await loadData();
-    } catch (err) {
-      console.error("PRODUCT SAVE ERROR:", err);
-
-      if (err.response?.data?.error) {
-        setError(err.response.data.error);
-      } else {
-        setError("Operation failed.");
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Edit
   const handleEdit = (product) => {
-    setEditingId(product.id);
+    setEditingProductId(product.id);
 
-    setName(product.name);
-    setSku(product.sku);
-    setDescription(product.description || "");
-    setPrice(product.price);
-    setQuantity(product.quantity);
-    setLowStockThreshold(product.lowStockThreshold ?? 10);
-    setCategoryId(product.category?.id || "");
+    setFormData({
+      name: product.name || "",
 
-    setError("");
-    setSuccess("");
+      sku: product.sku || "",
+
+      description:
+        product.description || "",
+
+      price:
+        product.price !== null &&
+        product.price !== undefined
+          ? String(
+              product.price
+            ).replace(
+              /\.00$/,
+              ""
+            )
+          : "",
+
+      quantity:
+        product.quantity !== null &&
+        product.quantity !== undefined
+          ? String(
+              product.quantity
+            )
+          : "",
+
+      lowStockThreshold:
+        product.lowStockThreshold !== null &&
+        product.lowStockThreshold !==
+          undefined
+          ? String(
+              product.lowStockThreshold
+            )
+          : "10",
+
+      categoryId:
+        product.category?.id !== null &&
+        product.category?.id !==
+          undefined
+          ? String(
+              product.category.id
+            )
+          : "",
+    });
+
+    setErrors({});
+
+    setMessage("");
+
+    setErrorMessage("");
+
+    /* Scroll to edit form */
+
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 100);
   };
 
-  // Delete
+  /* ==========================================
+     DELETE PRODUCT
+     ========================================== */
+
   const handleDelete = async (id) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this product?"
-    );
+    const confirmed =
+      window.confirm(
+        "Are you sure you want to delete this product?"
+      );
 
     if (!confirmed) {
       return;
     }
 
     try {
-      setError("");
-      setSuccess("");
+      setMessage("");
+      setErrorMessage("");
 
-      await api.delete(`/products/${id}`);
-
-      setSuccess("Product deleted successfully.");
-
-      await loadData();
-    } catch (err) {
-      console.error("DELETE PRODUCT ERROR:", err);
-
-      if (err.response?.data?.error) {
-        setError(err.response.data.error);
-      } else {
-        setError("Failed to delete product.");
-      }
-    }
-  };
-
-  // Search
-  const handleSearch = async (e) => {
-    e.preventDefault();
-
-    const searchValue = searchName.trim();
-
-    if (!searchValue) {
-      await loadData();
-      return;
-    }
-
-    try {
-      setSearching(true);
-      setError("");
-      setSuccess("");
-
-      const response = await api.get(
-        `/products/search?name=${encodeURIComponent(searchValue)}`
+      await api.delete(
+        `/products/${id}`
       );
 
-      setProducts(response.data);
-
-      if (response.data.length === 0) {
-        setSuccess("No products found.");
-      }
-    } catch (err) {
-      console.error("SEARCH ERROR:", err);
-
-      if (err.response?.data?.error) {
-        setError(err.response.data.error);
-      } else {
-        setError("Failed to search products.");
-      }
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  // Clear search
-  const handleClearSearch = async () => {
-    setSearchName("");
-    setError("");
-    setSuccess("");
-
-    await loadData();
-  };
-
-  // Low stock
-  const handleLowStock = async () => {
-    try {
-      setLowStockLoading(true);
-      setError("");
-      setSuccess("");
-
-      const response = await api.get(
-        `/products/low-stock?quantity=${Number(lowStockQuantity)}`
+      setProducts((prevProducts) =>
+        prevProducts.filter(
+          (product) =>
+            product.id !== id
+        )
       );
 
-      setLowStockProducts(response.data);
-
-      if (response.data.length === 0) {
-        setSuccess("No low-stock products found.");
-      }
-    } catch (err) {
-      console.error("LOW STOCK ERROR:", err);
-
-      if (err.response?.data?.error) {
-        setError(err.response.data.error);
-      } else {
-        setError("Failed to load low-stock products.");
-      }
-    } finally {
-      setLowStockLoading(false);
-    }
-  };
-
-  // Start stock update
-  const handleStockEdit = (product) => {
-    setStockProductId(product.id);
-    setStockQuantity(product.quantity);
-
-    setError("");
-    setSuccess("");
-  };
-
-  // Cancel stock update
-  const cancelStockUpdate = () => {
-    setStockProductId(null);
-    setStockQuantity("");
-  };
-
-  // Update stock
-  const handleStockUpdate = async (e) => {
-    e.preventDefault();
-
-    if (stockQuantity === "" || Number(stockQuantity) < 0) {
-      setError("Quantity cannot be negative.");
-      return;
-    }
-
-    try {
-      setStockUpdating(true);
-      setError("");
-      setSuccess("");
-
-      await api.put(
-        `/products/${stockProductId}/stock?quantity=${Number(stockQuantity)}`
+      setMessage(
+        "Product deleted successfully."
       );
 
-      setSuccess("Stock quantity updated successfully.");
+    } catch (error) {
+      console.error(
+        "Delete product error:",
+        error
+      );
 
-      cancelStockUpdate();
-      await loadData();
-    } catch (err) {
-      console.error("STOCK UPDATE ERROR:", err);
+      setErrorMessage(
+        error.response?.data?.message ||
+          error.response?.data?.error ||
+          "Unable to delete product."
+      );
 
-      if (err.response?.data?.error) {
-        setError(err.response.data.error);
-      } else {
-        setError("Failed to update stock quantity.");
-      }
-    } finally {
-      setStockUpdating(false);
+      setTimeout(() => {
+        setErrorMessage("");
+      }, 5000);
     }
   };
 
-  // Loading
-  if (loading) {
+  /* ==========================================
+     CANCEL EDIT
+     ========================================== */
+
+  const handleCancel = () => {
+    setFormData(initialFormData);
+
+    setErrors({});
+
+    setEditingProductId(null);
+
+    setMessage("");
+
+    setErrorMessage("");
+  };
+
+  /* ==========================================
+     FIELD ERROR
+     ========================================== */
+
+  const renderFieldError = (
+    fieldName
+  ) => {
+    if (!errors[fieldName]) {
+      return null;
+    }
+
     return (
-      <div className="products-page">
-        <Navbar />
+      <div className="field-error">
+        <span className="error-icon">
+          !
+        </span>
 
-        <div className="products-container">
-          <div className="empty-state">
-            Loading products...
-          </div>
-        </div>
+        <span>
+          {errors[fieldName]}
+        </span>
       </div>
     );
-  }
+  };
+
+  /* ==========================================
+     RENDER
+     ========================================== */
 
   return (
-    <div className="products-page">
+    <>
       <Navbar />
 
-      <main className="products-container">
+      <div className="products-page">
+        <div className="products-container">
 
-        {/* Page Header */}
-        <div className="products-header">
-          <div>
-            <h1>Products</h1>
-            <p>Manage your inventory products</p>
-          </div>
+          {/* PAGE HEADING */}
 
-          <button onClick={() => navigate("/dashboard")}>
-            Back to Dashboard
-          </button>
-        </div>
+          <h1>Products</h1>
 
-        {/* Messages */}
-        {error && (
-          <div className="message-error">
-            {error}
-          </div>
-        )}
+          <p className="products-subtitle">
+            {isAdmin
+              ? "Manage all inventory products"
+              : "Add a new inventory product"}
+          </p>
 
-        {success && (
-          <div className="message-success">
-            {success}
-          </div>
-        )}
+          {/* SUCCESS MESSAGE */}
 
-        {/* Search Section */}
-        <section className="products-section">
-          <h2>Search Products</h2>
-
-          <form
-            className="search-form"
-            onSubmit={handleSearch}
-          >
-            <input
-              type="text"
-              placeholder="Search product by name"
-              value={searchName}
-              onChange={(e) => setSearchName(e.target.value)}
-            />
-
-            <button type="submit" disabled={searching}>
-              {searching ? "Searching..." : "Search"}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleClearSearch}
-            >
-              Clear
-            </button>
-          </form>
-        </section>
-
-        {/* Low Stock Section */}
-        <section className="products-section">
-          <h2>Low Stock Products</h2>
-
-          <form
-            className="stock-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleLowStock();
-            }}
-          >
-            <label>
-              Quantity Threshold:
-            </label>
-
-            <input
-              type="number"
-              min="0"
-              value={lowStockQuantity}
-              onChange={(e) =>
-                setLowStockQuantity(e.target.value)
-              }
-            />
-
-            <button
-              type="submit"
-              disabled={lowStockLoading}
-            >
-              {lowStockLoading
-                ? "Checking..."
-                : "Check Low Stock"}
-            </button>
-          </form>
-
-          <br />
-
-          {lowStockProducts.length > 0 ? (
-            <div className="products-table-wrapper">
-              <table className="products-table low-stock-table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>SKU</th>
-                    <th>Quantity</th>
-                    <th>Low Stock Threshold</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {lowStockProducts.map((product) => (
-                    <tr key={product.id}>
-                      <td>{product.id}</td>
-                      <td>{product.name}</td>
-                      <td>{product.sku}</td>
-                      <td>{product.quantity}</td>
-                      <td>{product.lowStockThreshold}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="empty-state">
-              No low-stock products displayed.
+          {message && (
+            <div className="success-message">
+              {message}
             </div>
           )}
-        </section>
 
-        {/* Add / Edit Product */}
-        <section className="products-section">
-          <h2>
-            {editingId === null
-              ? "Add Product"
-              : "Edit Product"}
-          </h2>
+          {/* ERROR MESSAGE */}
 
-          <form
-            className="products-form"
-            onSubmit={handleSubmit}
+          {errorMessage && (
+            <div className="error-message">
+              {errorMessage}
+            </div>
+          )}
+
+          {/* ==================================
+              ADD / EDIT PRODUCT
+              ================================== */}
+
+          <div
+            className="product-card"
+            ref={formRef}
           >
-            <div className="form-group">
-              <label>Product Name</label>
 
-              <input
-                type="text"
-                value={name}
-                onChange={(e) =>
-                  setName(e.target.value)
-                }
-                required
-              />
-            </div>
+            <h2>
+              {editingProductId !== null
+                ? "Edit Product"
+                : "Add Product"}
+            </h2>
 
-            <div className="form-group">
-              <label>SKU</label>
+            <form
+              className="product-form"
+              onSubmit={handleSubmit}
+            >
 
-              <input
-                type="text"
-                value={sku}
-                onChange={(e) =>
-                  setSku(e.target.value)
-                }
-                required
-              />
-            </div>
+              {/* PRODUCT NAME */}
 
-            <div className="form-group full-width">
-              <label>Description</label>
+              <div className="form-group">
 
-              <textarea
-                value={description}
-                onChange={(e) =>
-                  setDescription(e.target.value)
-                }
-              />
-            </div>
+                <label htmlFor="name">
+                  Product Name
+                </label>
 
-            <div className="form-group">
-              <label>Price</label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Enter product name"
+                  className={
+                    errors.name
+                      ? "invalid"
+                      : ""
+                  }
+                />
 
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={price}
-                onChange={(e) =>
-                  setPrice(e.target.value)
-                }
-                required
-              />
-            </div>
+                {renderFieldError(
+                  "name"
+                )}
 
-            <div className="form-group">
-              <label>Quantity</label>
+              </div>
 
-              <input
-                type="number"
-                min="0"
-                value={quantity}
-                onChange={(e) =>
-                  setQuantity(e.target.value)
-                }
-                required
-              />
-            </div>
+              {/* SKU */}
 
-            <div className="form-group">
-              <label>Low Stock Threshold</label>
+              <div className="form-group">
 
-              <input
-                type="number"
-                min="0"
-                value={lowStockThreshold}
-                onChange={(e) =>
-                  setLowStockThreshold(e.target.value)
-                }
-              />
-            </div>
+                <label htmlFor="sku">
+                  SKU
+                </label>
 
-            <div className="form-group">
-              <label>Category</label>
+                <input
+                  id="sku"
+                  name="sku"
+                  type="text"
+                  value={formData.sku}
+                  onChange={handleChange}
+                  placeholder="Enter SKU"
+                  className={
+                    errors.sku
+                      ? "invalid"
+                      : ""
+                  }
+                />
 
-              <select
-                value={categoryId}
-                onChange={(e) =>
-                  setCategoryId(e.target.value)
-                }
-                required
-              >
-                <option value="">
-                  Select category
-                </option>
+                {renderFieldError(
+                  "sku"
+                )}
 
-                {categories
-                  .filter(
-                    (category) => category.active
-                  )
-                  .map((category) => (
-                    <option
-                      key={category.id}
-                      value={category.id}
-                    >
-                      {category.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
+              </div>
 
-            <div className="form-actions">
+              {/* DESCRIPTION */}
+
+              <div className="form-group full-width">
+
+                <label htmlFor="description">
+                  Description
+                </label>
+
+                <textarea
+                  id="description"
+                  name="description"
+                  value={
+                    formData.description
+                  }
+                  onChange={handleChange}
+                  placeholder="Enter description"
+                />
+
+              </div>
+
+              {/* PRICE */}
+
+              <div className="form-group">
+
+                <label htmlFor="price">
+                  Price
+                </label>
+
+                <input
+                  id="price"
+                  name="price"
+                  type="text"
+                  inputMode="numeric"
+                  value={formData.price}
+                  onChange={handleChange}
+                  placeholder="Enter price"
+                  className={
+                    errors.price
+                      ? "invalid"
+                      : ""
+                  }
+                />
+
+                {renderFieldError(
+                  "price"
+                )}
+
+              </div>
+
+              {/* QUANTITY */}
+
+              <div className="form-group">
+
+                <label htmlFor="quantity">
+                  Quantity
+                </label>
+
+                <input
+                  id="quantity"
+                  name="quantity"
+                  type="text"
+                  inputMode="numeric"
+                  value={formData.quantity}
+                  onChange={handleChange}
+                  placeholder="Enter quantity"
+                  className={
+                    errors.quantity
+                      ? "invalid"
+                      : ""
+                  }
+                />
+
+                {renderFieldError(
+                  "quantity"
+                )}
+
+              </div>
+
+              {/* LOW STOCK */}
+
+              <div className="form-group">
+
+                <label htmlFor="lowStockThreshold">
+                  Low Stock Threshold
+                </label>
+
+                <input
+                  id="lowStockThreshold"
+                  name="lowStockThreshold"
+                  type="text"
+                  inputMode="numeric"
+                  value={
+                    formData.lowStockThreshold
+                  }
+                  onChange={handleChange}
+                  placeholder="Enter low stock threshold"
+                  className={
+                    errors.lowStockThreshold
+                      ? "invalid"
+                      : ""
+                  }
+                />
+
+                {renderFieldError(
+                  "lowStockThreshold"
+                )}
+
+              </div>
+
+              {/* CATEGORY */}
+
+              <div className="form-group">
+
+                <label htmlFor="categoryId">
+                  Category
+                </label>
+
+                <select
+                  id="categoryId"
+                  name="categoryId"
+                  value={
+                    formData.categoryId
+                  }
+                  onChange={handleChange}
+                  className={
+                    errors.categoryId
+                      ? "invalid"
+                      : ""
+                  }
+                >
+
+                  <option value="">
+                    Select Category
+                  </option>
+
+                  {categories.map(
+                    (category) => (
+                      <option
+                        key={category.id}
+                        value={category.id}
+                      >
+                        {category.name}
+                      </option>
+                    )
+                  )}
+
+                </select>
+
+                {renderFieldError(
+                  "categoryId"
+                )}
+
+              </div>
+
+              {/* SUBMIT */}
+
               <button
                 type="submit"
-                disabled={saving}
+                disabled={loading}
               >
-                {saving
-                  ? "Saving..."
-                  : editingId === null
-                  ? "Add Product"
-                  : "Update Product"}
+                {loading
+                  ? editingProductId !== null
+                    ? "Updating..."
+                    : "Adding..."
+                  : editingProductId !== null
+                  ? "Update Product"
+                  : "Add Product"}
               </button>
 
-              {editingId !== null && (
+              {/* CANCEL */}
+
+              {editingProductId !== null && (
                 <button
                   type="button"
-                  className="cancel-button"
-                  onClick={clearForm}
+                  className="cancel-btn"
+                  onClick={handleCancel}
                 >
                   Cancel
                 </button>
               )}
-            </div>
-          </form>
-        </section>
 
-        {/* Product List */}
-        <section className="products-section">
-          <h2>Product List</h2>
+            </form>
 
-          {products.length === 0 ? (
-            <div className="empty-state">
-              No products found.
-            </div>
-          ) : (
-            <div className="products-table-wrapper">
-              <table className="products-table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>SKU</th>
-                    <th>Price</th>
-                    <th>Quantity</th>
-                    <th>Category</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
+          </div>
 
-                <tbody>
-                  {products.map((product) => (
-                    <tr key={product.id}>
-                      <td>{product.id}</td>
+          {/* ==================================
+              ALL PRODUCTS
+              ================================== */}
 
-                      <td>{product.name}</td>
+          {isAdmin && !isAddMode && (
+            <div className="product-card">
 
-                      <td>{product.sku}</td>
+              <h2>
+                All Products
+              </h2>
 
-                      <td>₹{product.price}</td>
+              {loadingProducts ? (
+                <div className="loading-message">
+                  Loading products...
+                </div>
 
-                      <td>{product.quantity}</td>
+              ) : products.length === 0 ? (
+                <div className="empty-products">
+                  No products found.
+                </div>
 
-                      <td>
-                        {product.category?.name || "N/A"}
-                      </td>
+              ) : (
+                <>
 
-                      <td>
-                        {product.active
-                          ? "Active"
-                          : "Inactive"}
-                      </td>
+                  <div className="product-count">
+                    {products.length}{" "}
+                    {products.length === 1
+                      ? "product"
+                      : "products"}
+                  </div>
 
-                      <td>
-                        <div className="table-actions">
-                          <button
-                            className="edit-button"
-                            onClick={() =>
-                              handleEdit(product)
-                            }
-                          >
-                            Edit
-                          </button>
+                  <div className="products-table-wrapper">
 
-                          <button
-                            className="delete-button"
-                            onClick={() =>
-                              handleDelete(product.id)
-                            }
-                          >
-                            Delete
-                          </button>
+                    <table className="products-table">
 
-                          <button
-                            className="stock-button"
-                            onClick={() =>
-                              handleStockEdit(product)
-                            }
-                          >
-                            Update Stock
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      <thead>
+                        <tr>
+
+                          {/* SERIAL NUMBER */}
+
+                          <th>
+                            Sr. No.
+                          </th>
+
+                          <th>
+                            Name
+                          </th>
+
+                          <th>
+                            SKU
+                          </th>
+
+                          <th>
+                            Description
+                          </th>
+
+                          <th>
+                            Price
+                          </th>
+
+                          <th>
+                            Quantity
+                          </th>
+
+                          <th>
+                            Low Stock
+                          </th>
+
+                          <th>
+                            Category
+                          </th>
+
+                          <th>
+                            Created By
+                          </th>
+
+                          <th>
+                            Actions
+                          </th>
+
+                        </tr>
+                      </thead>
+
+                      <tbody>
+
+                        {currentProducts.map(
+                          (
+                            product,
+                            index
+                          ) => {
+
+                            const isLowStock =
+                              product.quantity <=
+                              product.lowStockThreshold;
+
+                            /*
+                              Continuous serial number
+                              across all pages.
+                            */
+
+                            const serialNumber =
+                              startIndex +
+                              index +
+                              1;
+
+                            return (
+                              <tr
+                                key={
+                                  product.id
+                                }
+                              >
+
+                                {/* SR NO */}
+
+                                <td>
+                                  {
+                                    serialNumber
+                                  }
+                                </td>
+
+                                {/* NAME */}
+
+                                <td className="product-name-cell">
+                                  {
+                                    product.name
+                                  }
+                                </td>
+
+                                {/* SKU */}
+
+                                <td className="product-sku">
+                                  {
+                                    product.sku
+                                  }
+                                </td>
+
+                                {/* DESCRIPTION */}
+
+                                <td>
+                                  {
+                                    product.description ||
+                                    "-"
+                                  }
+                                </td>
+
+                                {/* PRICE */}
+
+                                <td>
+                                  ₹
+                                  {Number(
+                                    product.price ||
+                                      0
+                                  ).toFixed(0)}
+                                </td>
+
+                                {/* QUANTITY */}
+
+                                <td>
+
+                                  <span
+                                    className={`quantity-badge ${
+                                      isLowStock
+                                        ? "low-stock"
+                                        : ""
+                                    }`}
+                                  >
+                                    {
+                                      product.quantity
+                                    }
+                                  </span>
+
+                                </td>
+
+                                {/* LOW STOCK */}
+
+                                <td>
+                                  {
+                                    product.lowStockThreshold
+                                  }
+                                </td>
+
+                                {/* CATEGORY */}
+
+                                <td>
+                                  {product
+                                    .category
+                                    ?.name ||
+                                    "-"}
+                                </td>
+
+                                {/* CREATED BY */}
+
+                                <td>
+                                  {
+                                    product.createdBy ||
+                                    "-"
+                                  }
+                                </td>
+
+                                {/* ACTIONS */}
+
+                                <td>
+
+                                  <div className="action-buttons">
+
+                                    <button
+                                      type="button"
+                                      className="edit-btn"
+                                      onClick={() =>
+                                        handleEdit(
+                                          product
+                                        )
+                                      }
+                                      title="Edit Product"
+                                      aria-label="Edit Product"
+                                    >
+                                      ✏️
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      className="delete-btn"
+                                      onClick={() =>
+                                        handleDelete(
+                                          product.id
+                                        )
+                                      }
+                                      title="Delete Product"
+                                      aria-label="Delete Product"
+                                    >
+                                      🗑️
+                                    </button>
+
+                                  </div>
+
+                                </td>
+
+                              </tr>
+                            );
+                          }
+                        )}
+
+                      </tbody>
+
+                    </table>
+
+                  </div>
+
+                  {/* ==================================
+                      PAGINATION
+                      ================================== */}
+
+                  {totalPages > 1 && (
+                    <div className="pagination">
+
+                      <button
+                        type="button"
+                        className="pagination-btn"
+                        disabled={
+                          currentPage === 1
+                        }
+                        onClick={() =>
+                          setCurrentPage(
+                            (prev) =>
+                              Math.max(
+                                1,
+                                prev - 1
+                              )
+                          )
+                        }
+                      >
+                        Previous
+                      </button>
+
+                      <span className="pagination-info">
+                        Page{" "}
+                        {currentPage}{" "}
+                        of{" "}
+                        {totalPages}
+                      </span>
+
+                      <button
+                        type="button"
+                        className="pagination-btn"
+                        disabled={
+                          currentPage ===
+                          totalPages
+                        }
+                        onClick={() =>
+                          setCurrentPage(
+                            (prev) =>
+                              Math.min(
+                                totalPages,
+                                prev + 1
+                              )
+                          )
+                        }
+                      >
+                        Next
+                      </button>
+
+                    </div>
+                  )}
+
+                </>
+              )}
+
             </div>
           )}
-        </section>
 
-        {/* Stock Update Form */}
-        {stockProductId !== null && (
-          <section className="products-section">
-            <h2>Update Stock Quantity</h2>
-
-            <form
-              className="stock-form"
-              onSubmit={handleStockUpdate}
-            >
-              <label>New Quantity:</label>
-
-              <input
-                type="number"
-                min="0"
-                value={stockQuantity}
-                onChange={(e) =>
-                  setStockQuantity(e.target.value)
-                }
-                required
-              />
-
-              <button
-                type="submit"
-                disabled={stockUpdating}
-              >
-                {stockUpdating
-                  ? "Updating..."
-                  : "Update Stock"}
-              </button>
-
-              <button
-                type="button"
-                className="cancel-button"
-                onClick={cancelStockUpdate}
-              >
-                Cancel
-              </button>
-            </form>
-          </section>
-        )}
-
-      </main>
-    </div>
+        </div>
+      </div>
+    </>
   );
 }
 

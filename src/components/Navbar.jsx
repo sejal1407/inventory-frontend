@@ -1,53 +1,176 @@
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import "./Navbar.css";
 
 function Navbar() {
   const navigate = useNavigate();
 
-  const userData = localStorage.getItem("user");
+  const [showLogoutModal, setShowLogoutModal] =
+    useState(false);
 
-  let user = null;
+  /* ==========================================
+     LOGOUT BUTTON CLICK
+     ========================================== */
 
-  try {
-    user = userData ? JSON.parse(userData) : null;
-  } catch (error) {
-    console.error("Failed to read user data:", error);
-  }
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
 
-  const handleLogout = () => {
+  /* ==========================================
+     STAY BUTTON
+     ========================================== */
+
+  const handleStay = () => {
+    setShowLogoutModal(false);
+  };
+
+  /* ==========================================
+     CONFIRM LOGOUT
+     ========================================== */
+
+  const handleConfirmLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+
+    setShowLogoutModal(false);
 
     navigate("/login");
   };
 
   return (
-    <nav>
-      <div>
-        <strong>Inventory Management System</strong>
-      </div>
+    <>
+      {/* ==========================================
+          NAVBAR
+         ========================================== */}
 
-      <div>
-        <button type="button" onClick={() => navigate("/dashboard")}>
-          Dashboard
-        </button>
+      <nav className="navbar">
 
-        <button type="button" onClick={() => navigate("/products")}>
-          Products
-        </button>
+        {/* BRAND */}
 
-        <button type="button" onClick={() => navigate("/categories")}>
-          Categories
-        </button>
+        <div className="navbar-brand">
+          Inventory Management
+        </div>
 
-        <span>
-          Welcome, {user?.fullName || "User"}
-        </span>
+        {/* ========================================
+            NAVIGATION LINKS
+           ======================================== */}
 
-        <button type="button" onClick={handleLogout}>
-          Logout
-        </button>
-      </div>
-    </nav>
+        <div className="navbar-links">
+
+          {/* DASHBOARD */}
+
+          <NavLink
+            to="/dashboard"
+            className={({ isActive }) =>
+              isActive
+                ? "navbar-link active"
+                : "navbar-link"
+            }
+          >
+            Dashboard
+          </NavLink>
+
+          {/* PRODUCTS */}
+
+          <NavLink
+            to="/products"
+            className={({ isActive }) =>
+              isActive
+                ? "navbar-link active"
+                : "navbar-link"
+            }
+          >
+            Products
+          </NavLink>
+
+          {/* CATEGORIES */}
+
+          <NavLink
+            to="/categories"
+            className={({ isActive }) =>
+              isActive
+                ? "navbar-link active"
+                : "navbar-link"
+            }
+          >
+            Categories
+          </NavLink>
+
+          {/* ======================================
+              LOGOUT
+
+              IMPORTANT:
+              Logout is a normal button.
+              It is NOT a NavLink.
+              Therefore it can NEVER receive
+              the "active" class.
+             ====================================== */}
+
+          <button
+            type="button"
+            className="logout-btn"
+            onClick={handleLogoutClick}
+          >
+            Logout
+          </button>
+
+        </div>
+      </nav>
+
+      {/* ==========================================
+          LOGOUT CONFIRMATION MODAL
+         ========================================== */}
+
+      {showLogoutModal && (
+        <div className="logout-modal-overlay">
+
+          <div className="logout-modal">
+
+            {/* ICON */}
+
+            <div className="logout-icon">
+              👋
+            </div>
+
+            {/* TITLE */}
+
+            <h2>
+              Leaving already?
+            </h2>
+
+            {/* MESSAGE */}
+
+            <p>
+              Are you sure you want to log out?
+            </p>
+
+            {/* BUTTONS */}
+
+            <div className="logout-modal-actions">
+
+              <button
+                type="button"
+                className="confirm-logout-btn"
+                onClick={handleConfirmLogout}
+              >
+                Yes, Log Out
+              </button>
+
+              <button
+                type="button"
+                className="stay-btn"
+                onClick={handleStay}
+              >
+                Stay
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
+    </>
   );
 }
 

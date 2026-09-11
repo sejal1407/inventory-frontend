@@ -1,189 +1,178 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import api from "../services/api";
+import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import "./Dashboard.css";
 
 function Dashboard() {
-  const navigate = useNavigate();
 
-  const [productCount, setProductCount] = useState(0);
-  const [categoryCount, setCategoryCount] = useState(0);
-  const [lowStockCount, setLowStockCount] = useState(0);
+    // =====================================================
+    // GET CURRENT USER
+    // =====================================================
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+    const userData = localStorage.getItem("user");
 
-  useEffect(() => {
-    const loadDashboardData = async () => {
-      setLoading(true);
-      setError("");
+    let user = null;
 
-      let hasError = false;
-
-      try {
-        const productsResponse = await api.get("/products");
-        setProductCount(productsResponse.data.length);
-      } catch (err) {
-        console.error("PRODUCT COUNT ERROR:", err);
-        hasError = true;
-      }
-
-      try {
-        const categoriesResponse = await api.get("/categories");
-        setCategoryCount(categoriesResponse.data.length);
-      } catch (err) {
-        console.error("CATEGORY COUNT ERROR:", err);
-        hasError = true;
-      }
-
-      try {
-        const lowStockResponse = await api.get(
-          "/products/low-stock?quantity=10"
+    try {
+        user = userData
+            ? JSON.parse(userData)
+            : null;
+    } catch (error) {
+        console.error(
+            "Error parsing user:",
+            error
         );
-        setLowStockCount(lowStockResponse.data.length);
-      } catch (err) {
-        console.error("LOW STOCK COUNT ERROR:", err);
-        hasError = true;
-      }
+    }
 
-      if (hasError) {
-        setError("Some dashboard data could not be loaded.");
-      }
+    const isAdmin =
+        user?.email === "test@gmail.com";
 
-      setLoading(false);
-    };
 
-    loadDashboardData();
-  }, []);
-
-  if (loading) {
     return (
-      <div className="dashboard-page">
-        <Navbar />
+        <>
+            <Navbar />
 
-        <main className="dashboard-container">
-          <div className="dashboard-loading">
-            Loading dashboard...
-          </div>
-        </main>
-      </div>
+            <main className="dashboard-page">
+
+                {/* =================================================
+                    PAGE HEADER
+                ================================================= */}
+
+                <section className="dashboard-header">
+
+                    <h1>
+                        Dashboard
+                    </h1>
+
+                    <p>
+                        Welcome to your inventory management workspace.
+                    </p>
+
+                </section>
+
+
+                {/* =================================================
+                    INVENTORY OVERVIEW
+                ================================================= */}
+
+                <section className="dashboard-welcome-card">
+
+                    <div className="welcome-accent"></div>
+
+                    <div className="welcome-content">
+
+                        <div className="welcome-icon">
+                            ✦
+                        </div>
+
+                        <div className="welcome-text">
+
+                            <h2>
+                                Inventory Overview
+                            </h2>
+
+                            <p>
+                                View and manage your inventory,
+                                products, and categories from one place.
+                            </p>
+
+                            <span className="role-badge">
+                                {isAdmin
+                                    ? "Administrator"
+                                    : "User"}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                {/* =================================================
+                    QUICK ACTIONS
+                ================================================= */}
+
+                <section className="quick-actions-section">
+
+                    <div className="section-heading">
+
+                        <h2>
+                            Quick Actions
+                        </h2>
+
+                        <p>
+                            Get started with your inventory.
+                        </p>
+
+                    </div>
+
+
+                    <div className="quick-actions-grid">
+
+                        {/* =========================================
+                            ADD PRODUCT
+                        ========================================== */}
+
+                        <Link
+                            to="/products?mode=add"
+                            className="action-card product-action"
+                        >
+
+                            <div className="action-icon product-icon">
+                                +
+                            </div>
+
+                            <h3>
+                                Add Product
+                            </h3>
+
+                            <p>
+                                Create a new product and add it
+                                to your inventory.
+                            </p>
+
+                            <span className="action-link">
+                                Add a product →
+                            </span>
+
+                        </Link>
+
+
+                        {/* =========================================
+                            ADD CATEGORY
+                        ========================================== */}
+
+                        <Link
+                            to="/categories?mode=add"
+                            className="action-card category-action"
+                        >
+
+                            <div className="action-icon category-icon">
+                                #
+                            </div>
+
+                            <h3>
+                                Add Category
+                            </h3>
+
+                            <p>
+                                Create a new category and organize
+                                your products.
+                            </p>
+
+                            <span className="action-link">
+                                Add a category →
+                            </span>
+
+                        </Link>
+
+                    </div>
+
+                </section>
+
+            </main>
+        </>
     );
-  }
-
-  return (
-    <div className="dashboard-page">
-      <Navbar />
-
-      <main className="dashboard-container">
-        {/* Page Heading */}
-        <div className="dashboard-heading">
-          <h1>Dashboard</h1>
-          <p>Inventory overview and quick actions</p>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="dashboard-error">
-            {error}
-          </div>
-        )}
-
-        {/* Dashboard Cards */}
-        <div className="dashboard-cards">
-
-          {/* Products Card */}
-          <div
-            className="dashboard-card"
-            onClick={() => navigate("/products")}
-          >
-            <div className="card-icon">📦</div>
-
-            <p className="card-label">
-              Total Products
-            </p>
-
-            <h2>{productCount}</h2>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate("/products");
-              }}
-            >
-              View Products
-            </button>
-          </div>
-
-          {/* Categories Card */}
-          <div
-            className="dashboard-card"
-            onClick={() => navigate("/categories")}
-          >
-            <div className="card-icon">🏷️</div>
-
-            <p className="card-label">
-              Total Categories
-            </p>
-
-            <h2>{categoryCount}</h2>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate("/categories");
-              }}
-            >
-              View Categories
-            </button>
-          </div>
-
-          {/* Low Stock Card */}
-          <div
-            className="dashboard-card low-stock-card"
-            onClick={() => navigate("/products")}
-          >
-            <div className="card-icon">⚠️</div>
-
-            <p className="card-label">
-              Low Stock Products
-            </p>
-
-            <h2>{lowStockCount}</h2>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate("/products");
-              }}
-            >
-              Check Stock
-            </button>
-          </div>
-
-        </div>
-
-        {/* Quick Actions */}
-        <section className="quick-actions">
-          <h2>Quick Actions</h2>
-
-          <div className="action-buttons">
-            <button
-              onClick={() => navigate("/products")}
-            >
-              📦 Manage Products
-            </button>
-
-            <button
-              onClick={() => navigate("/categories")}
-            >
-              🏷️ Manage Categories
-            </button>
-          </div>
-        </section>
-      </main>
-    </div>
-  );
 }
 
 export default Dashboard;

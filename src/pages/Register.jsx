@@ -1,132 +1,224 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import "./Register.css";
 
 function Register() {
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
-
   const navigate = useNavigate();
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+  });
+
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
 
     setError("");
-    setSuccess("");
-    setLoading(true);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    setError("");
+
+    const fullName = formData.fullName.trim();
+    const email = formData.email.trim();
+    const password = formData.password;
+
+    if (!fullName) {
+      setError("Full name is required.");
+      return;
+    }
+
+    if (!email) {
+      setError("Email address is required.");
+      return;
+    }
+
+    if (!password) {
+      setError("Password is required.");
+      return;
+    }
 
     try {
-      await api.post("/auth/register", {
-        fullName,
-        email,
-        password,
+      setLoading(true);
+
+      const response = await api.post("/auth/register", {
+        fullName: fullName,
+        email: email,
+        password: password,
       });
 
-      setSuccess(
-        "Registration successful! Redirecting to login..."
+      console.log("Registration successful:", response.data);
+
+      navigate("/login");
+    } catch (err) {
+      console.error("Registration error:", err);
+      console.error(
+        "Backend response:",
+        err.response?.data
       );
 
-      setTimeout(() => {
-        navigate("/login");
-      }, 1000);
-    } catch (err) {
-      console.error("REGISTER ERROR:", err);
+      const backendData = err.response?.data;
 
-      if (err.response?.data?.error) {
-        setError(err.response.data.error);
-      } else {
-        setError("Registration failed. Please try again.");
+      let backendMessage = "";
+
+      if (typeof backendData === "string") {
+        backendMessage = backendData;
+      } else if (backendData?.message) {
+        backendMessage = backendData.message;
+      } else if (backendData?.error) {
+        backendMessage = backendData.error;
+      } else if (backendData?.detail) {
+        backendMessage = backendData.detail;
+      } else if (backendData?.fullName) {
+        backendMessage = backendData.fullName;
+      } else if (backendData?.email) {
+        backendMessage = backendData.email;
+      } else if (backendData?.password) {
+        backendMessage = backendData.password;
       }
+
+      setError(
+        backendMessage ||
+          "Unable to create account. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <div className="auth-header">
-          <div className="auth-logo">📦</div>
+    <div className="register-page">
 
-          <h1>Inventory Management</h1>
+      <div className="register-card">
 
-          <p>Create your account to get started</p>
+        <div className="register-icon">
+          👤
         </div>
 
-        {error && (
-          <div className="auth-error">
-            {error}
-          </div>
-        )}
+        <h1>Create Account</h1>
 
-        {success && (
-          <div className="auth-success">
-            {success}
+        <p className="register-subtitle">
+          Create your inventory management account
+        </p>
+
+        {error && (
+          <div className="register-error">
+            <span className="register-error-icon">
+              !
+            </span>
+
+            <span>{error}</span>
           </div>
         )}
 
         <form
-          className="auth-form"
-          onSubmit={handleRegister}
+          className="register-form"
+          onSubmit={handleSubmit}
         >
-          <div className="auth-form-group">
-            <label>Full Name</label>
+
+          {/* FULL NAME */}
+
+          <div className="register-form-group">
+
+            <label htmlFor="fullName">
+              Full Name
+            </label>
 
             <input
+              id="fullName"
+              name="fullName"
               type="text"
+              value={formData.fullName}
+              onChange={handleChange}
               placeholder="Enter your full name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
+              autoComplete="name"
             />
+
           </div>
 
-          <div className="auth-form-group">
-            <label>Email Address</label>
+          {/* EMAIL */}
+
+          <div className="register-form-group">
+
+            <label htmlFor="email">
+              Email Address
+            </label>
 
             <input
+              id="email"
+              name="email"
               type="email"
+              value={formData.email}
+              onChange={handleChange}
               placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+              autoComplete="email"
             />
+
           </div>
 
-          <div className="auth-form-group">
-            <label>Password</label>
+          {/* PASSWORD */}
+
+          <div className="register-form-group">
+
+            <label htmlFor="password">
+              Password
+            </label>
 
             <input
+              id="password"
+              name="password"
               type="password"
+              value={formData.password}
+              onChange={handleChange}
               placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
+              autoComplete="new-password"
             />
+
           </div>
+
+          {/* CREATE ACCOUNT */}
 
           <button
-            className="auth-submit-button"
             type="submit"
+            className="register-button"
             disabled={loading}
           >
-            {loading ? "Creating Account..." : "Register"}
+            {loading
+              ? "Creating Account..."
+              : "Create Account"}
           </button>
+
         </form>
 
-        <div className="auth-footer">
-          <p>
-            Already have an account?{" "}
-            <Link to="/login">Login here</Link>
-          </p>
+        <div className="register-login-text">
+
+          <span>
+            Already have an account?
+          </span>
+
+          <Link
+            to="/login"
+            className="register-login-link"
+          >
+            Sign in
+          </Link>
+
         </div>
+
       </div>
+
     </div>
   );
 }

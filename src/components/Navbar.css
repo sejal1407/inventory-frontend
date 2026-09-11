@@ -1,72 +1,499 @@
+/* ==========================================
+   NAVBAR
+   ========================================== */
+
 .navbar {
   width: 100%;
-  min-height: 70px;
-  background: #1f2937;
-  color: white;
+  height: 86px;
+
+  box-sizing: border-box;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 30px;
-  gap: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+  padding: 0 18px 0 20px;
+
+  background: linear-gradient(
+    90deg,
+    #0b1729 0%,
+    #122640 100%
+  );
+
+  box-shadow:
+    0 4px 12px rgba(20, 35, 60, 0.25);
+
+  font-family: Arial, sans-serif;
+
+  position: relative;
+  z-index: 100;
 }
 
+/* ==========================================
+   BRAND
+   ========================================== */
+
 .navbar-brand {
-  font-size: 20px;
-  font-weight: bold;
-  cursor: pointer;
+  display: flex;
+  align-items: center;
+
+  color: #ffffff;
+
+  font-family: Arial, sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+
   white-space: nowrap;
 }
+
+/* Blue dot before brand */
+
+.navbar-brand::before {
+  content: "";
+
+  width: 14px;
+  height: 14px;
+
+  margin-right: 12px;
+
+  border-radius: 50%;
+
+  background: #4da3ff;
+
+  box-shadow:
+    0 0 0 4px rgba(77, 163, 255, 0.12),
+    0 0 12px rgba(77, 163, 255, 0.45);
+}
+
+/* ==========================================
+   NAVIGATION CONTAINER
+   ========================================== */
 
 .navbar-links {
   display: flex;
   align-items: center;
-  gap: 10px;
+
+  gap: 12px;
 }
 
-.navbar-links button {
+/* ==========================================
+   DASHBOARD / PRODUCTS / CATEGORIES
+   ========================================== */
+
+.navbar-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 50px;
+
+  padding: 0 18px;
+
+  border-radius: 10px;
+
+  color: #d7dfeb;
+
   background: transparent;
-  color: white;
-  margin: 0;
+
+  text-decoration: none;
+
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
-.navbar-links button:hover {
-  background: rgba(255, 255, 255, 0.12);
+/* ==========================================
+   LINK HOVER
+   ========================================== */
+
+.navbar-link:hover {
+  color: #ffffff;
+
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.navbar-user {
+/* ==========================================
+   ACTIVE PAGE
+   ONLY NAVLINKS USE THIS
+   ========================================== */
+
+.navbar-link.active {
+  color: #ffffff;
+
+  background: rgba(255, 255, 255, 0.10);
+
+  font-weight: 700;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+/* ==========================================
+   LOGOUT BUTTON
+   ========================================== */
+
+.logout-btn {
+  min-width: 104px;
+  height: 50px;
+
+  padding: 0 22px;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+
+  background: #243b59;
+  color: #ffffff;
+
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* ==========================================
+   LOGOUT HOVER
+   ========================================== */
+
+.logout-btn:hover {
+  background: #2d4667;
+
+  box-shadow:
+    0 5px 12px rgba(0, 0, 0, 0.18);
+}
+
+/* ==========================================
+   LOGOUT FOCUS
+   ========================================== */
+
+.logout-btn:focus {
+  outline: none;
+
+  box-shadow:
+    0 0 0 3px rgba(77, 163, 255, 0.18);
+}
+
+/* ==========================================
+   LOGOUT MODAL OVERLAY
+   ========================================== */
+
+.logout-modal-overlay {
+  position: fixed;
+
+  inset: 0;
+
   display: flex;
   align-items: center;
-  gap: 15px;
-  white-space: nowrap;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(48, 57, 70, 0.68);
+
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  z-index: 9999;
 }
 
-.navbar-user span {
-  font-size: 14px;
+/* ==========================================
+   LOGOUT MODAL
+   ========================================== */
+
+.logout-modal {
+  width: 100%;
+  max-width: 450px;
+
+  box-sizing: border-box;
+
+  padding: 36px 32px 31px;
+
+  background: #f8fbff;
+
+  border: 1px solid #e3eaf2;
+  border-radius: 20px;
+
+  box-shadow:
+    0 22px 55px rgba(21, 33, 49, 0.28);
+
+  text-align: center;
+
+  font-family: Arial, sans-serif;
 }
 
-.logout-button {
-  background: #dc2626;
-  margin: 0;
+/* ==========================================
+   LOGOUT ICON
+   ========================================== */
+
+.logout-icon {
+  width: 64px;
+  height: 64px;
+
+  margin: 0 auto 20px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #eaf3ff;
+
+  font-size: 32px;
+  line-height: 1;
 }
 
-.logout-button:hover {
-  background: #b91c1c;
+/* ==========================================
+   LOGOUT TITLE
+   ========================================== */
+
+.logout-modal h2 {
+  margin: 0 0 12px;
+
+  color: #172b49;
+
+  font-family: Arial, sans-serif;
+  font-size: 27px;
+  line-height: 1.2;
+  font-weight: 700;
 }
+
+/* ==========================================
+   LOGOUT MESSAGE
+   ========================================== */
+
+.logout-modal p {
+  margin: 0 0 27px;
+
+  color: #7890ae;
+
+  font-family: Arial, sans-serif;
+  font-size: 18px;
+  line-height: 1.45;
+  font-weight: 400;
+}
+
+/* ==========================================
+   MODAL BUTTON CONTAINER
+   ========================================== */
+
+.logout-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 13px;
+}
+
+/* ==========================================
+   YES, LOG OUT
+   ========================================== */
+
+.confirm-logout-btn {
+  width: 143px;
+  height: 49px;
+
+  padding: 0;
+
+  border: none;
+  border-radius: 10px;
+
+  background: #e45f62;
+  color: #ffffff;
+
+  font-family: Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+/* ==========================================
+   YES, LOG OUT HOVER
+   ========================================== */
+
+.confirm-logout-btn:hover {
+  background: #d95357;
+}
+
+.confirm-logout-btn:active {
+  transform: scale(0.98);
+}
+
+/* ==========================================
+   STAY
+   ========================================== */
+
+.stay-btn {
+  width: 144px;
+  height: 49px;
+
+  padding: 0;
+
+  border: none;
+  border-radius: 10px;
+
+  background: #e8eef5;
+  color: #304967;
+
+  font-family: Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+/* ==========================================
+   STAY HOVER
+   ========================================== */
+
+.stay-btn:hover {
+  background: #dce5ef;
+}
+
+.stay-btn:active {
+  transform: scale(0.98);
+}
+
+/* ==========================================
+   MODAL BUTTON FOCUS
+   ========================================== */
+
+.confirm-logout-btn:focus,
+.stay-btn:focus {
+  outline: none;
+}
+
+/* ==========================================
+   TABLET
+   ========================================== */
 
 @media (max-width: 900px) {
   .navbar {
-    flex-wrap: wrap;
-    padding: 15px 20px;
+    height: auto;
+    min-height: 76px;
+
+    padding: 12px 18px;
+
+    gap: 15px;
+  }
+
+  .navbar-brand {
+    font-size: 21px;
   }
 
   .navbar-links {
-    order: 3;
-    width: 100%;
-    justify-content: center;
+    gap: 6px;
   }
 
-  .navbar-user {
-    margin-left: auto;
+  .navbar-link {
+    min-height: 44px;
+
+    padding: 0 12px;
+
+    font-size: 14px;
+  }
+
+  .logout-btn {
+    min-width: 88px;
+    height: 44px;
+
+    padding: 0 15px;
+
+    font-size: 14px;
+  }
+}
+
+/* ==========================================
+   MOBILE
+   ========================================== */
+
+@media (max-width: 650px) {
+  .navbar {
+    flex-direction: column;
+    align-items: stretch;
+
+    padding: 14px 15px;
+  }
+
+  .navbar-brand {
+    justify-content: center;
+
+    margin-bottom: 8px;
+  }
+
+  .navbar-links {
+    justify-content: center;
+
+    flex-wrap: wrap;
+
+    gap: 6px;
+  }
+
+  .navbar-link {
+    min-height: 42px;
+
+    padding: 0 11px;
+
+    font-size: 13px;
+  }
+
+  .logout-btn {
+    min-width: 82px;
+    height: 42px;
+
+    padding: 0 15px;
+
+    font-size: 13px;
+  }
+
+  /* ========================================
+     MOBILE LOGOUT MODAL
+     ======================================== */
+
+  .logout-modal {
+    max-width: 390px;
+
+    padding: 30px 22px 26px;
+  }
+
+  .logout-icon {
+    width: 60px;
+    height: 60px;
+
+    font-size: 30px;
+  }
+
+  .logout-modal h2 {
+    font-size: 24px;
+  }
+
+  .logout-modal p {
+    font-size: 16px;
+  }
+
+  .logout-modal-actions {
+    gap: 10px;
+  }
+
+  .confirm-logout-btn,
+  .stay-btn {
+    width: 50%;
   }
 }
